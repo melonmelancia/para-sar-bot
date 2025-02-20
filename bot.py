@@ -4,17 +4,12 @@ import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from discord.ext import commands, tasks
-import asyncio
-from dotenv import load_dotenv
-
-# Carregar variáveis de ambiente do arquivo .env
-load_dotenv()
 
 # Carregar informações do config.json
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-# Obter a chave privada do ambiente (GitHub Secrets ou arquivo .env)
+# Obter a chave privada do ambiente (GitHub Secrets)
 private_key = os.getenv("GOOGLE_PRIVATE_KEY").replace("\\n", "\n")
 
 # Montar o dicionário do Service Account com a chave privada
@@ -35,8 +30,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f'Logged in as {bot.user}!')
     print("Bot está online e pronto para usar.")
-    # Iniciar a tarefa periódica quando o bot estiver online
-    periodic_task.start()
+    # Aqui você pode colocar funções que devem ser executadas quando o bot está online.
 
 # Comando para ler dados do Google Sheets
 @bot.command()
@@ -63,10 +57,10 @@ async def periodic_task():
     print("Executando tarefa periódica.")
     # Coloque aqui funções que você deseja executar periodicamente
 
+# Iniciar tarefa periódica
+@bot.event
+async def on_ready():
+    periodic_task.start()
+
 # Colocar o bot para rodar
-token = os.getenv("DISCORD_TOKEN")
-if token is None:
-    print("Erro: o token do Discord não foi encontrado.")
-else:
-    print("Token carregado com sucesso.")
-    bot.run(token)
+bot.run(os.getenv("DISCORD_TOKEN"))
