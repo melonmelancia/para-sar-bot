@@ -1,7 +1,6 @@
 import os
 import discord
 from discord.ext import tasks, commands
-import asyncio
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging
@@ -16,17 +15,27 @@ logger = logging.getLogger()
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-# Acessar o token diretamente das variáveis de ambiente
+# Acessar as variáveis de ambiente do GitHub Secrets
+DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")  # Token do bot
+GOOGLE_CLIENT_EMAIL = os.getenv("GOOGLE_CLIENT_EMAIL")  # Email do cliente da conta de serviço
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")  # ID do cliente da conta de serviço
+GOOGLE_PRIVATE_KEY = os.getenv("GOOGLE_PRIVATE_KEY").replace("\\n", "\n")  # Chave privada
+
 CHANNEL_ID = config["CHANNEL_ID"]
 MENTION_CHANNEL_ID = config["MENTION_CHANNEL_ID"]
 SPREADSHEET_ID = config["SPREADSHEET_ID"]
-SERVICE_ACCOUNT_INFO = config["SERVICE_ACCOUNT_INFO"]
-
-# Recuperar e formatar a chave privada
-private_key = os.getenv("GOOGLE_PRIVATE_KEY")
-# Substituir qualquer \n no formato string por uma nova linha real
-private_key = private_key.replace("\\n", "\n")
-SERVICE_ACCOUNT_INFO["private_key"] = private_key  # Inserir a chave privada formatada nas credenciais
+SERVICE_ACCOUNT_INFO = {
+    "type": "service_account",
+    "project_id": config["SERVICE_ACCOUNT_INFO"]["project_id"],
+    "private_key_id": config["SERVICE_ACCOUNT_INFO"]["private_key_id"],
+    "private_key": GOOGLE_PRIVATE_KEY,
+    "client_email": GOOGLE_CLIENT_EMAIL,
+    "client_id": GOOGLE_CLIENT_ID,
+    "auth_uri": config["SERVICE_ACCOUNT_INFO"]["auth_uri"],
+    "token_uri": config["SERVICE_ACCOUNT_INFO"]["token_uri"],
+    "auth_provider_x509_cert_url": config["SERVICE_ACCOUNT_INFO"]["auth_provider_x509_cert_url"],
+    "client_x509_cert_url": config["SERVICE_ACCOUNT_INFO"]["client_x509_cert_url"]
+}
 
 # Configurações da API do Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
@@ -134,5 +143,5 @@ async def on_ready():
     if not check_form_responses.is_running():
         check_form_responses.start()
 
-# Inicia o bot usando o token do ambiente
-bot.run(os.getenv("DISCORD_BOT_TOKEN"))
+# Inicia o bot
+bot.run(DISCORD_TOKEN)  # Usando o token do GitHub Secrets
