@@ -17,8 +17,6 @@ with open('config.json') as config_file:
     config = json.load(config_file)
 
 # Acessar o token diretamente das variáveis de ambiente
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")  # Usando o token do GitHub Secrets
-
 CHANNEL_ID = config["CHANNEL_ID"]
 MENTION_CHANNEL_ID = config["MENTION_CHANNEL_ID"]
 SPREADSHEET_ID = config["SPREADSHEET_ID"]
@@ -136,5 +134,5 @@ async def on_ready():
     if not check_form_responses.is_running():
         check_form_responses.start()
 
-# Inicia o bot
-bot.run(TOKEN)
+# Inicia o bot usando o token do ambiente
+bot.run(os.getenv("DISCORD_BOT_TOKEN"))
