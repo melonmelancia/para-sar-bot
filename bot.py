@@ -24,6 +24,12 @@ MENTION_CHANNEL_ID = config["MENTION_CHANNEL_ID"]
 SPREADSHEET_ID = config["SPREADSHEET_ID"]
 SERVICE_ACCOUNT_INFO = config["SERVICE_ACCOUNT_INFO"]
 
+# Recuperar e formatar a chave privada
+private_key = os.getenv("GOOGLE_PRIVATE_KEY")
+# Substituir qualquer \n no formato string por uma nova linha real
+private_key = private_key.replace("\\n", "\n")
+SERVICE_ACCOUNT_INFO["private_key"] = private_key  # Inserir a chave privada formatada nas credenciais
+
 # Configurações da API do Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
@@ -131,4 +137,4 @@ async def on_ready():
         check_form_responses.start()
 
 # Inicia o bot
-bot.run(os.getenv("DISCORD_BOT_TOKEN"))  # Agora o token é obtido diretamente do GitHub Secrets
+bot.run(TOKEN)
