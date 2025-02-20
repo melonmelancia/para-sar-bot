@@ -1,0 +1,19 @@
+{
+  "TOKEN": "MTM0MTE1NDg2MjEzMzY3NDE1Ng.G-mqce.CZT7fqt7lk2sVaRti2E4mI7CriftYDzqOKGvYM",
+  "CHANNEL_ID": 1341351337069248512,
+  "MENTION_CHANNEL_ID": 1336275024969076799,
+  "SPREADSHEET_ID": "1CrSARzGbg7xf0FI7A0UzWT3Ql3-CGQVFcpNqdb6C7f8",
+  "SERVICE_ACCOUNT_INFO": {
+  "type": "service_account",
+  "project_id": "para-sar-bot",
+  "private_key_id": "9765cf56b0417ab87ef3dcdee8003243ca9a1757",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEugIBADANBgkqhkiG9w0BAQEFAASCBKQwggSgAgEAAoIBAQCYyYlsN0iIE4I5\nrJm5Ff0F5/bcUFB/U2bjxQlk4fyHIqAmopF9hOCd3zdw5+DMAotf9g07IMxynSeK\nK5UNJC2vumu0qkIu86hKelB+N5ahLe/mb04dV8LevoLby/MeCTRQKnKXFhskYKtC\nwxsfMyKvWZ3YIKEZ6fjWSsoIceB3q7hhcdot4wLNYnmWPLlmkSI0xHsCPyihAGvw\nr9W7as1dGcl6Dmm1/aMgKQNE4bk0JyCD77eMYDq0hUcQqoxTXu1IAMocyMc1bWry\nIAPd/8noUJEqWkta14rsWg7OAbi91jd3RgupbFiHrzfuZ6uNlCZ8Wjf+MpS2Jh8Y\nos+W3OJhAgMBAAECgf93tXBU+zGVvUeBESa+wqQQq7v1My4Uyq+qZ9H0buXLMWNx\n72ccXSh3zLAc4VsXwF/fE0gHND+4SgtFAOCsvAo4HmwqIXIKZPkYVBuvoGT48bQ7\nG4EYpOBNVKZbP2NKTbYADBmhVJW5p31fZeqJUZTbfdT4gaW33fhPZ3InfIsSDrwg\nZcOLtSLSaNlQIVnBPw5gvCJcYkov/ezwfA6029tM9EaZHpdNEqZetna49FAjB1ig\n6f78aee4WOAAJD/d6fhqeFsAkWN1vnhakl/EjXABUgrwEDk8Ietu5PeP965UxiOv\n8kOlYtmB4M8s8zlQCRNSLrxxpFWFgLg34x9JqzECgYEA0s0cp0iU5UX+UY1CASU2\nBx7797BJa5S8Q2OwcZHyiCvYZct5cMPEY6gTwdkB60bzUPtVRAPXQ0yHveNcgjpd\nD34e6zk/fmxG4b2MVioQjQQa68Gr+aaUMt94XGCyMZtBaR1W1tG71CLOpPu+a/p6\n2zZcHzlC16rquQlhGiG9jJ0CgYEAuYwJKdUeffyV0Kjye8+bf4UFdTnJpeHsSPL7\nTDSpDwxZghQdXObUe36saF076/in8UoRbOBYieBQEnCXi2WUHD4RhSVluIcVbb2g\nHfzHExG5/CMFPOcP9cqvEwt0XU69DBmbTQINZASPsgxK9rD/AP6Gp9s52JQBQREa\nHJ1sx5UCgYANZztGK6hD97JW7xteRUZtJ3wv4Iaaj4d05XbHkdcQ73C/8DMVh20K\nRRqUfb7Qfd9kq8ZdH71lKw2KdlVgdmOKY6OFo0s1N58+JTYyGFSbEsK/cL4FjqDn\npyvY+9D4tH1xOItX91fxAhGPje4qoW+EVq1+0r48RkLMZxtEdRa/RQKBgAuiIQzz\nZMcHaCk9/n4OxTQYlgAEkIULBjKIsYLUpmjgIFiMhE7H1jir94lPlyszWuxA9Zi6\n9DIo0zxkvMurob6nkZekgZ0xMwG/auOWbrDeYqfRVkm8Pv7tJ07tX+1du3KfxGHu\nqAJGWvAR3z1aWZKpYq3xi83tcaqvtNBoemKFAoGAN9L6Z9m80u93x/zt8zahnukQ\nU1eQmHdPpazatWARjPVc371x0D9CLopNXQEKoH0S8zlI7ZQcnQoUdrprtq02ZUfe\nF3F3PQK8iHxYQ21RORX+GB4I8+cWDN07WZEvJjuNWmBHUmO4DyFhojLDSHG2bhJ4\nR6GEhsOPH1Cue+OghjM=\n-----END PRIVATE KEY-----\n",
+  "client_email": "netopc53@para-sar-bot.iam.gserviceaccount.com",
+  "client_id": "115960468781776497209",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/netopc53%40para-sar-bot.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+  }
+}
