@@ -46,7 +46,7 @@ PyScreeze==1.0.1
 python-dotenv==1.0.1
 python3-xlib==0.15
 pytweening==1.2.0
-pywa==2.7.0
+pywa==2.6.0
 pywhatkit==5.4
 requests==2.32.3
 requests-oauthlib==2.0.0
