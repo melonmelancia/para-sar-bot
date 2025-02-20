@@ -1,16 +1,19 @@
-name: Run Bot
+name: Run Para-SAR Bot
 
 on:
   push:
     branches:
-      - main
+      - main  # ou a branch que você estiver usando
+  pull_request:
+    branches:
+      - main  # ou a branch que você estiver usando
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Set up Python
@@ -24,5 +27,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run bot.py
-      run: |
-        python bot.py
+      env:
+        GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      run: python bot.py
