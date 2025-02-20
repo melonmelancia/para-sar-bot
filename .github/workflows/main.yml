@@ -1,33 +1,29 @@
-name: Run Para-SAR Bot
+name: Build and Deploy
 
 on:
   push:
     branches:
-      - main  # ou a branch que você estiver usando
-  pull_request:
-    branches:
-      - main  # ou a branch que você estiver usando
+      - main
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Run bot.py
-      env:
-        GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
-        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-      run: python bot.py
+      - name: Run bot
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}  # Garanta que o token seja passado corretamente
+        run: |
+          python bot.py
