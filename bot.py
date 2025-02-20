@@ -63,4 +63,4 @@ async def on_ready():
     periodic_task.start()
 
 # Colocar o bot para rodar
-bot.run(os.getenv("DISCORD_TOKEN"))
+bot.run(os.getenv("DISCORD_BOT_TOKEN"))
