@@ -1,4 +1,4 @@
-import os
+   import os
 import discord
 from discord.ext import tasks, commands
 from google.oauth2 import service_account
@@ -48,9 +48,9 @@ SERVICE_ACCOUNT_INFO = {
     "client_email": GOOGLE_CLIENT_EMAIL,
     "client_id": GOOGLE_CLIENT_ID,
     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
+    "token_uri": "https://oauth2.googleapis.com/tokenl",
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/{GOOGLE_CLIENT_EMAIL}"
+    "client_x509_cert_url": f"https://www.googleapis.com/robot/v1/metadata/x509/netopc53%40para-sar-bot.iam.gserviceaccount.com"
 }
 
 # Configuração da API do Google Sheets
