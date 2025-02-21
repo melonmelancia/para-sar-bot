@@ -108,10 +108,10 @@ async def check_form_responses():
                 logger.info(f"Mencionando usuário com ID: {discord_id}")
                 mention_message = (
                     f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
-                    f"{nome_no_ic} // <@{discord_id}>\n\n"
-                    f"Você está pré-aprovado para a Paracomandos! \n"
-                    f"Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para "
-                    f"agendarmos na melhor opção para você."
+                    f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
+                    f"*Você está pré-aprovado para a Paracomandos!* \n"
+                    f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
+                    f"*agendarmos na melhor opção para você*."
                 )
                 await mention_channel.send(mention_message)
             else:
