@@ -12,20 +12,16 @@ import json
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 
-# Carregar configurações do config.json
-with open('config.json') as config_file:
-    config = json.load(config_file)
-
 # Obter variáveis do GitHub Secrets
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GOOGLE_PRIVATE_KEY = os.getenv("GOOGLE_PRIVATE_KEY", "").replace("\\n", "\n")
 GOOGLE_CLIENT_EMAIL = os.getenv("GOOGLE_CLIENT_EMAIL")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
-# Configuração dos IDs e planilhas
-CHANNEL_ID = config["CHANNEL_ID"]
-MENTION_CHANNEL_ID = config["MENTION_CHANNEL_ID"]
-SPREADSHEET_ID = config["SPREADSHEET_ID"]
+# IDs do canal e ID da planilha (agora vindos do GitHub Secrets)
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
+MENTION_CHANNEL_ID = int(os.getenv("MENTION_CHANNEL_ID", 0))
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
 # Configuração do Service Account para API do Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
