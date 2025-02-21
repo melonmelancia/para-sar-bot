@@ -1,17 +1,13 @@
 {
-  "CHANNEL_ID": 1341351337069248512,
-  "MENTION_CHANNEL_ID": 1336275024969076799,
-  "SPREADSHEET_ID": "1CrSARzGbg7xf0FI7A0UzWT3Ql3-CGQVFcpNqdb6C7f8",
-  "SERVICE_ACCOUNT_INFO": {
-    "type": "service_account",
-    "project_id": "para-sar-bot",
-    "private_key_id": "9765cf56b0417ab87ef3dcdee8003243ca9a1757",
-    "client_email": "netopc53@para-sar-bot.iam.gserviceaccount.com",
-    "client_id": "115960468781776497209",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/netopc53%40para-sar-bot.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
-  }
+    "CHANNEL_ID": "1341351337069248512",
+    "MENTION_CHANNEL_ID": "1336275024969076799",
+    "SPREADSHEET_ID": "1CrSARzGbg7xf0FI7A0UzWT3Ql3-CGQVFcpNqdb6C7f8",
+    "SERVICE_ACCOUNT_INFO": {
+        "project_id": "para-sar-bot",
+        "private_key_id": "",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": ""
+    }
 }
