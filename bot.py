@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 import logging
 import random
 import json
+import traceback  # Import para capturar traceback completo
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,13 +20,13 @@ except FileNotFoundError:
     logger.error("❌ Arquivo config.json não encontrado!")
     exit(1)
 
-# Acessar as variáveis de ambiente do GitHub Secrets (⚠️ Pegamos as credenciais APENAS do Secrets)
+# Acessar variáveis de ambiente do GitHub Secrets
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GOOGLE_CLIENT_EMAIL = os.getenv("GOOGLE_CLIENT_EMAIL")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_PRIVATE_KEY = os.getenv("GOOGLE_PRIVATE_KEY")
 
-# Se a chave privada estiver mal formatada no GitHub Secrets, corrigimos isso
+# Se a chave privada estiver mal formatada, corrigimos isso
 if GOOGLE_PRIVATE_KEY:
     GOOGLE_PRIVATE_KEY = GOOGLE_PRIVATE_KEY.replace("\\n", "\n")
 
@@ -38,7 +39,7 @@ if not GOOGLE_CLIENT_EMAIL or not GOOGLE_CLIENT_ID or not GOOGLE_PRIVATE_KEY:
     logger.error("❌ Variáveis do Google não definidas corretamente! Verifique os GitHub Secrets.")
     exit(1)
 
-# Configuração da conta de serviço (⚠️ Agora usamos apenas os valores do Secrets!)
+# Configuração da conta de serviço
 SERVICE_ACCOUNT_INFO = {
     "type": "service_account",
     "project_id": os.getenv("GOOGLE_PROJECT_ID"),
@@ -60,7 +61,8 @@ try:
     service = build("sheets", "v4", credentials=creds)
     logger.info("✅ Conexão com Google Sheets bem-sucedida!")
 except Exception as e:
-    logger.error(f"❌ Erro ao inicializar credenciais do Google: {e}")
+    error_details = traceback.format_exc()
+    logger.error(f"❌ Erro ao inicializar credenciais do Google!\nArquivo: {__file__}\nErro: {e}\nDetalhes:\n{error_details}")
     exit(1)
 
 # Inicializa cliente Discord
@@ -95,7 +97,8 @@ async def get_form_responses():
         return responses
 
     except Exception as e:
-        logger.error(f"❌ Erro ao buscar respostas: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"❌ Erro ao buscar respostas!\nArquivo: {__file__}\nErro: {e}\nDetalhes:\n{error_details}")
         return []
 
 # Loop para checar respostas a cada 5 segundos
@@ -103,42 +106,46 @@ processed_responses = set()
 
 @tasks.loop(seconds=5)
 async def check_form_responses():
-    main_channel = bot.get_channel(config["CHANNEL_ID"])
-    mention_channel = bot.get_channel(config["MENTION_CHANNEL_ID"])
-    
-    if main_channel is None or mention_channel is None:
-        logger.error("❌ Um dos canais não foi encontrado!")
-        return
+    try:
+        main_channel = bot.get_channel(config["CHANNEL_ID"])
+        mention_channel = bot.get_channel(config["MENTION_CHANNEL_ID"])
 
-    responses = await get_form_responses()
+        if main_channel is None or mention_channel is None:
+            logger.error("❌ Um dos canais não foi encontrado!")
+            return
 
-    for response in responses:
-        response_tuple = tuple(response.items())
-        if response_tuple not in processed_responses:
-            message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
+        responses = await get_form_responses()
 
-            embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
-            await main_channel.send(embed=embed)
+        for response in responses:
+            response_tuple = tuple(response.items())
+            if response_tuple not in processed_responses:
+                message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
 
-            # Menção ao usuário que passou
-            discord_id = response.get("ID do Discord")
-            nome_no_ic = response.get("Nome no IC")
-            user_to_message = 963524916987183134  # ID fixo para mensagem
+                embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
+                await main_channel.send(embed=embed)
 
-            if discord_id and discord_id.isdigit() and nome_no_ic:
-                logger.info(f"🔔 Mencionando usuário com ID: {discord_id}")
-                mention_message = (
-                    f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
-                    f"{nome_no_ic} // <@{discord_id}>\n\n"
-                    f"Você está pré-aprovado para a Paracomandos! \n"
-                    f"Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para "
-                    f"agendarmos na melhor opção para você."
-                )
-                await mention_channel.send(mention_message)
-            else:
-                logger.warning(f"⚠ Discord ID ou Nome no IC inválido ou ausente para a resposta: {response}")
+                # Menção ao usuário que passou
+                discord_id = response.get("ID do Discord")
+                nome_no_ic = response.get("Nome no IC")
+                user_to_message = 963524916987183134  # ID fixo para mensagem
 
-            processed_responses.add(response_tuple)
+                if discord_id and discord_id.isdigit() and nome_no_ic:
+                    logger.info(f"🔔 Mencionando usuário com ID: {discord_id}")
+                    mention_message = (
+                        f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
+                        f"{nome_no_ic} // <@{discord_id}>\n\n"
+                        f"Você está pré-aprovado para a Paracomandos! \n"
+                        f"Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para "
+                        f"agendarmos na melhor opção para você."
+                    )
+                    await mention_channel.send(mention_message)
+                else:
+                    logger.warning(f"⚠ Discord ID ou Nome no IC inválido ou ausente para a resposta: {response}")
+
+                processed_responses.add(response_tuple)
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"❌ Erro na verificação de respostas!\nArquivo: {__file__}\nErro: {e}\nDetalhes:\n{error_details}")
 
 # Evento de inicialização do bot
 @bot.event
