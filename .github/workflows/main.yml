@@ -1,9 +1,12 @@
 name: Run Discord Bot
 
 on:
+  schedule:
+    - cron: "0 */6 * * *"  # Executa a cada 6 horas
   push:
     branches:
       - main  # Executa o workflow quando houver push na branch "main"
+  workflow_dispatch:  # Permite iniciar o workflow manualmente
 
 jobs:
   run-bot:
@@ -34,4 +37,6 @@ jobs:
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           MENTION_CHANNEL_ID: ${{ secrets.MENTION_CHANNEL_ID }}
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-        run: python bot.py  # Ajuste o nome do seu script se necessário
+
+      - name: ▶️ Rodar o bot
+        run: python bot.py  # Ajuste o nome do script se necessário
