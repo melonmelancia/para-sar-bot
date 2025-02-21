@@ -111,7 +111,8 @@ async def check_form_responses():
                     f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
                     f"*Você está pré-aprovado para a Paracomandos!* \n"
                     f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
-                    f"*agendarmos na melhor opção para você*."
+                    f"*agendarmos na melhor opção para você*.\n\n"
+                    f"@here"  # Menção ao @here
                 )
                 await mention_channel.send(mention_message)
             else:
