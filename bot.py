@@ -6,7 +6,6 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging
 import random
-import json
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,7 +17,7 @@ GOOGLE_PRIVATE_KEY = os.getenv("GOOGLE_PRIVATE_KEY", "").replace("\\n", "\n")
 GOOGLE_CLIENT_EMAIL = os.getenv("GOOGLE_CLIENT_EMAIL")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
-# IDs do canal e ID da planilha (agora vindos do GitHub Secrets)
+# IDs do canal e ID da planilha
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
 MENTION_CHANNEL_ID = int(os.getenv("MENTION_CHANNEL_ID", 0))
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
@@ -28,14 +27,12 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SERVICE_ACCOUNT_INFO = {
     "type": "service_account",
     "project_id": "para-sar-bot",
-    "private_key_id": "",
     "private_key": GOOGLE_PRIVATE_KEY,
     "client_email": GOOGLE_CLIENT_EMAIL,
     "client_id": GOOGLE_CLIENT_ID,
     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
     "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": ""
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
 }
 
 # Inicializa cliente Discord
@@ -44,19 +41,28 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Inicializa credenciais do Google Sheets
-creds = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_INFO, scopes=SCOPES)
-service = build("sheets", "v4", credentials=creds)
+try:
+    creds = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_INFO, scopes=SCOPES)
+    service = build("sheets", "v4", credentials=creds)
+except Exception as e:
+    logger.error(f"❌ Erro ao configurar API do Google Sheets: {e}")
+    service = None
 
 # Armazena respostas já processadas
 processed_responses = set()
 
 # Emojis para perguntas
 QUESTION_EMOJIS = ["🔹", "🔸", "⭐", "✨", "💡", "📌", "📍", "📝", "🔍", "🗂"]
+
 def get_random_emoji():
     return random.choice(QUESTION_EMOJIS)
 
 # Função para buscar respostas do Google Sheets
 async def get_form_responses():
+    if service is None:
+        logger.error("❌ Serviço da API do Google Sheets não foi inicializado corretamente.")
+        return []
+
     try:
         sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
         sheet_name = sheet_metadata["sheets"][0]["properties"]["title"]
@@ -66,65 +72,71 @@ async def get_form_responses():
         values = result.get("values", [])
 
         if not values:
-            logger.warning("Nenhuma resposta encontrada na planilha.")
+            logger.warning("⚠️ Nenhuma resposta encontrada na planilha.")
             return []
 
-        headers = values[0]  # Primeira linha é o cabeçalho
-        responses = []
-        for row in values[1:]:  # Linhas com respostas
-            response = dict(zip(headers, row))
-            responses.append(response)
+        headers = values[0]
+        responses = [dict(zip(headers, row)) for row in values[1:] if row]
         return responses
 
     except Exception as e:
-        logger.error(f"❌ Erro ao buscar respostas!\n{e}")
+        logger.error(f"❌ Erro ao buscar respostas da planilha: {e}")
         return []
 
 # Loop para checar respostas a cada 5 segundos
 @tasks.loop(seconds=5)
 async def check_form_responses():
-    main_channel = bot.get_channel(CHANNEL_ID)
-    mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
-    if main_channel is None or mention_channel is None:
-        logger.error("Um dos canais não foi encontrado!")
-        return
+    try:
+        main_channel = bot.get_channel(CHANNEL_ID)
+        mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
 
-    responses = await get_form_responses()
+        if main_channel is None or mention_channel is None:
+            logger.error("❌ Um dos canais não foi encontrado.")
+            return
 
-    for response in responses:
-        response_tuple = tuple(response.items())
-        if response_tuple not in processed_responses:
-            message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
+        responses = await get_form_responses()
 
-            embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
-            await main_channel.send(embed=embed)
+        if not responses:
+            logger.info("🔍 Nenhuma nova resposta encontrada. Aguardando...")
+            return  # Continua rodando normalmente
 
-            # Menção ao usuário que passou
-            discord_id = response.get("ID do Discord")  # Busca pelo ID do Discord
-            nome_no_ic = response.get("Nome no IC")  # Resposta da pergunta "Nome no IC"
-            user_to_message = 963524916987183134  # ID fixo para mensagem
+        for response in responses:
+            response_tuple = tuple(response.items())
+            if response_tuple not in processed_responses:
+                message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
 
-            if discord_id and discord_id.isdigit() and nome_no_ic:
-                logger.info(f"Mencionando usuário com ID: {discord_id}")
-                mention_message = (
-                    f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
-                    f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
-                    f"*Você está pré-aprovado para a Paracomandos!* \n"
-                    f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
-                    f"*agendarmos na melhor opção para você*.\n\n"
-                    f"@here"  # Menção ao @here
-                )
-                await mention_channel.send(mention_message)
-            else:
-                logger.warning(f"Discord ID ou Nome no IC inválido ou ausente para a resposta: {response}")
+                embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
+                await main_channel.send(embed=embed)
 
-            processed_responses.add(response_tuple)
+                discord_id = response.get("ID do Discord")
+                nome_no_ic = response.get("Nome no IC")
+                user_to_message = 963524916987183134  # ID fixo para mensagem
 
-# Comando !teste para mencionar o último ID
+                if discord_id and discord_id.isdigit() and nome_no_ic:
+                    logger.info(f"Mencionando usuário com ID: {discord_id}")
+                    mention_message = (
+                        f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
+                        f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
+                        f"*Você está pré-aprovado para a Paracomandos!* \n"
+                        f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
+                        f"*agendarmos na melhor opção para você*.\n\n"
+                        f"@here"
+                    )
+                    await mention_channel.send(mention_message)
+                else:
+                    logger.warning(f"⚠️ Discord ID ou Nome no IC inválido ou ausente para a resposta: {response}")
+
+                processed_responses.add(response_tuple)
+
+    except Exception as e:
+        logger.error(f"❌ Erro no loop de verificação de respostas: {e}")
+
+# Comando !teste para mencionar o último ID registrado
 @bot.command()
 async def teste(ctx):
     last_discord_id = None
     responses = await get_form_responses()
+    
     for response in responses:
         discord_id = response.get("ID do Discord")
         if discord_id and discord_id.isdigit():
@@ -133,7 +145,7 @@ async def teste(ctx):
     if last_discord_id:
         await ctx.send(f"👋 Olá <@{last_discord_id}>, aqui está o seu teste!")
     else:
-        await ctx.send("Nenhum ID de Discord foi registrado ainda!")
+        await ctx.send("⚠️ Nenhum ID de Discord foi registrado ainda.")
 
 # Evento de inicialização do bot
 @bot.event
@@ -144,6 +156,9 @@ async def on_ready():
 
 # Inicia o bot
 if TOKEN:
-    bot.run(TOKEN)
+    try:
+        bot.run(TOKEN)
+    except Exception as e:
+        logger.error(f"❌ Erro ao iniciar o bot: {e}")
 else:
     logger.error("❌ DISCORD_BOT_TOKEN não foi encontrado nas variáveis de ambiente!")
