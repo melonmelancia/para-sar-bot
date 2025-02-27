@@ -121,6 +121,10 @@ async def check_form_responses():
 
                 if discord_id and discord_id.isdigit() and nome_no_ic:
                     mention_message = f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n|| {nome_no_ic} // <@{discord_id}> || \n\n*Você está pré-aprovado!*"
+                        f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
+                        f"*agendarmos na melhor opção para você*.\n\n"
+                        f"@here"
+                    )
                     await mention_channel.send(mention_message)
 
                 processed_responses.add(response_tuple)
