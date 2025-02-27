@@ -86,14 +86,16 @@ async def get_form_responses():
 # Loop para checar respostas a cada 5 segundos
 @tasks.loop(seconds=5)
 async def check_form_responses():
+    await bot.wait_until_ready()  # Aguarda o bot estar pronto
+
+    main_channel = bot.get_channel(CHANNEL_ID)
+    mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
+
+    if main_channel is None or mention_channel is None:
+        logger.error("❌ Um dos canais não foi encontrado! Verifique os IDs e permissões.")
+        return
+
     try:
-        main_channel = bot.get_channel(CHANNEL_ID)
-        mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
-
-        if main_channel is None or mention_channel is None:
-            logger.error("❌ Um dos canais não foi encontrado.")
-            return
-
         responses = await get_form_responses()
 
         if not responses:
@@ -151,6 +153,18 @@ async def teste(ctx):
 @bot.event
 async def on_ready():
     logger.info(f"✅ Bot conectado como {bot.user}")
+
+    # Aguarde um tempo antes de pegar os canais
+    await asyncio.sleep(5)
+
+    main_channel = bot.get_channel(CHANNEL_ID)
+    mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
+
+    if main_channel is None or mention_channel is None:
+        logger.error("❌ Um dos canais não foi encontrado! Verifique os IDs e permissões.")
+    else:
+        logger.info(f"✅ Canais verificados: {main_channel}, {mention_channel}")
+
     if not check_form_responses.is_running():
         check_form_responses.start()
 
