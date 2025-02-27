@@ -120,7 +120,10 @@ async def check_form_responses():
                 user_to_message = 963524916987183134  
 
                 if discord_id and discord_id.isdigit() and nome_no_ic:
-                    mention_message = f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n|| {nome_no_ic} // <@{discord_id}> || \n\n*Você está pré-aprovado!*"
+                    mention_message = mention_message = (
+                        f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
+                        f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
+                        f"*Você está pré-aprovado para a Paracomandos!* \n"
                         f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
                         f"*agendarmos na melhor opção para você*.\n\n"
                         f"@here"
