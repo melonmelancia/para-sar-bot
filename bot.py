@@ -16,11 +16,18 @@ TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GOOGLE_PRIVATE_KEY = os.getenv("GOOGLE_PRIVATE_KEY", "").replace("\\n", "\n")
 GOOGLE_CLIENT_EMAIL = os.getenv("GOOGLE_CLIENT_EMAIL")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-
-# IDs do canal e ID da planilha
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
 MENTION_CHANNEL_ID = int(os.getenv("MENTION_CHANNEL_ID", 0))
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+
+# Debug: verificar se as variáveis de ambiente estão carregadas corretamente
+env_vars = ["DISCORD_BOT_TOKEN", "GOOGLE_CLIENT_EMAIL", "GOOGLE_CLIENT_ID", "GOOGLE_PRIVATE_KEY", "CHANNEL_ID", "MENTION_CHANNEL_ID", "SPREADSHEET_ID"]
+missing_vars = [var for var in env_vars if not os.getenv(var)]
+
+if missing_vars:
+    logger.error(f"❌ ERRO: As seguintes variáveis de ambiente não estão definidas: {', '.join(missing_vars)}")
+else:
+    logger.info("✅ Todas as variáveis de ambiente foram carregadas corretamente!")
 
 # Configuração do Service Account para API do Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
@@ -86,21 +93,19 @@ async def get_form_responses():
 # Loop para checar respostas a cada 5 segundos
 @tasks.loop(seconds=5)
 async def check_form_responses():
-    await bot.wait_until_ready()  # Aguarda o bot estar pronto
-
-    main_channel = bot.get_channel(CHANNEL_ID)
-    mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
-
-    if main_channel is None or mention_channel is None:
-        logger.error("❌ Um dos canais não foi encontrado! Verifique os IDs e permissões.")
-        return
-
     try:
+        main_channel = bot.get_channel(CHANNEL_ID)
+        mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
+
+        if main_channel is None or mention_channel is None:
+            logger.error("❌ Um dos canais não foi encontrado.")
+            return
+
         responses = await get_form_responses()
 
         if not responses:
             logger.info("🔍 Nenhuma nova resposta encontrada. Aguardando...")
-            return  # Continua rodando normalmente
+            return  
 
         for response in responses:
             response_tuple = tuple(response.items())
@@ -112,67 +117,24 @@ async def check_form_responses():
 
                 discord_id = response.get("ID do Discord")
                 nome_no_ic = response.get("Nome no IC")
-                user_to_message = 963524916987183134  # ID fixo para mensagem
+                user_to_message = 963524916987183134  
 
                 if discord_id and discord_id.isdigit() and nome_no_ic:
-                    logger.info(f"Mencionando usuário com ID: {discord_id}")
-                    mention_message = (
-                        f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
-                        f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
-                        f"*Você está pré-aprovado para a Paracomandos!* \n"
-                        f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
-                        f"*agendarmos na melhor opção para você*.\n\n"
-                        f"@here"
-                    )
+                    mention_message = f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n|| {nome_no_ic} // <@{discord_id}> || \n\n*Você está pré-aprovado!*"
                     await mention_channel.send(mention_message)
-                else:
-                    logger.warning(f"⚠️ Discord ID ou Nome no IC inválido ou ausente para a resposta: {response}")
 
                 processed_responses.add(response_tuple)
 
     except Exception as e:
         logger.error(f"❌ Erro no loop de verificação de respostas: {e}")
 
-# Comando !teste para mencionar o último ID registrado
-@bot.command()
-async def teste(ctx):
-    last_discord_id = None
-    responses = await get_form_responses()
-    
-    for response in responses:
-        discord_id = response.get("ID do Discord")
-        if discord_id and discord_id.isdigit():
-            last_discord_id = discord_id
-
-    if last_discord_id:
-        await ctx.send(f"👋 Olá <@{last_discord_id}>, aqui está o seu teste!")
-    else:
-        await ctx.send("⚠️ Nenhum ID de Discord foi registrado ainda.")
-
-# Evento de inicialização do bot
 @bot.event
 async def on_ready():
     logger.info(f"✅ Bot conectado como {bot.user}")
-
-    # Aguarde um tempo antes de pegar os canais
-    await asyncio.sleep(5)
-
-    main_channel = bot.get_channel(CHANNEL_ID)
-    mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
-
-    if main_channel is None or mention_channel is None:
-        logger.error("❌ Um dos canais não foi encontrado! Verifique os IDs e permissões.")
-    else:
-        logger.info(f"✅ Canais verificados: {main_channel}, {mention_channel}")
-
     if not check_form_responses.is_running():
         check_form_responses.start()
 
-# Inicia o bot
 if TOKEN:
-    try:
-        bot.run(TOKEN)
-    except Exception as e:
-        logger.error(f"❌ Erro ao iniciar o bot: {e}")
+    bot.run(TOKEN)
 else:
-    logger.error("❌ DISCORD_BOT_TOKEN não foi encontrado nas variáveis de ambiente!")
+    logger.error("❌ DISCORD_BOT_TOKEN não foi encontrado!")
