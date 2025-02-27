@@ -39,4 +39,4 @@ jobs:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
 
       - name: ▶️ Rodar o bot
-        run: python bot.py  # Ajuste o nome do script se necessário
+        run: bot.py  # Ajuste o nome do script se necessário
