@@ -5,8 +5,8 @@ on:
     - cron: "0 */6 * * *"  # Executa a cada 6 horas
   push:
     branches:
-      - main  # Executa o workflow quando houver push na branch "main"
-  workflow_dispatch:  # Permite iniciar o workflow manualmente
+      - main  # Executa quando houver push na branch "main"
+  workflow_dispatch:  # Permite iniciar manualmente
 
 jobs:
   run-bot:
@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 🔑 Configurar variáveis de ambiente
+      - name: ▶️ Rodar o bot
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           GOOGLE_CLIENT_EMAIL: ${{ secrets.GOOGLE_CLIENT_EMAIL }}
@@ -37,6 +37,4 @@ jobs:
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           MENTION_CHANNEL_ID: ${{ secrets.MENTION_CHANNEL_ID }}
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-
-      - name: ▶️ Rodar o bot
-        run: bot.py  # Ajuste o nome do script se necessário
+        run: python bot.py  # Certifique-se de que o nome do script está correto
