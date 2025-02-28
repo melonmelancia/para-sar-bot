@@ -6,6 +6,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging
 import random
+import json
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -55,8 +56,20 @@ except Exception as e:
     logger.error(f"❌ Erro ao configurar API do Google Sheets: {e}")
     service = None
 
-# Armazena respostas já processadas
-processed_responses = set()
+# Carregar respostas processadas de um arquivo
+def load_processed_responses():
+    if os.path.exists("processed_responses.json"):
+        with open("processed_responses.json", "r") as f:
+            return set(json.load(f))
+    return set()
+
+# Salvar respostas processadas em um arquivo
+def save_processed_responses():
+    with open("processed_responses.json", "w") as f:
+        json.dump(list(processed_responses), f)
+
+# Inicializa o conjunto de respostas processadas
+processed_responses = load_processed_responses()
 
 # Emojis para perguntas
 QUESTION_EMOJIS = ["🔹", "🔸", "⭐", "✨", "💡", "📌", "📍", "📝", "🔍", "🗂"]
@@ -145,6 +158,7 @@ async def check_form_responses():
                         logger.error(f"❌ Erro ao enviar mensagem de menção: {e}")
 
                 processed_responses.add(response_tuple)
+                save_processed_responses()  # Salva as respostas processadas
 
     except Exception as e:
         logger.error(f"❌ Erro no loop de verificação de respostas: {e}")
