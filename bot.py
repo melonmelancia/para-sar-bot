@@ -97,8 +97,11 @@ async def check_form_responses():
         main_channel = bot.get_channel(CHANNEL_ID)
         mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
 
-        if main_channel is None or mention_channel is None:
-            logger.error("❌ Um dos canais não foi encontrado.")
+        if main_channel is None:
+            logger.error("❌ O canal principal não foi encontrado.")
+            return
+        if mention_channel is None:
+            logger.error("❌ O canal de menções não foi encontrado.")
             return
 
         responses = await get_form_responses()
@@ -115,20 +118,31 @@ async def check_form_responses():
                 embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
                 await main_channel.send(embed=embed)
 
-                discord_id = response.get("ID do Discord")
-                nome_no_ic = response.get("Nome no IC")
-                user_to_message = 963524916987183134  
+                # Debug: Exibir resposta antes de tentar mencionar
+                logger.info(f"🔍 Processando resposta: {response}")
 
-                if discord_id and discord_id.isdigit() and nome_no_ic:
-                    mention_message = mention_message = (
+                discord_id = response.get("ID do Discord", "").strip()
+                nome_no_ic = response.get("Nome no IC", "").strip()
+                user_to_message = 963524916987183134  # ID fixo para mencionar
+
+                if not discord_id or not discord_id.isdigit():
+                    logger.warning(f"⚠️ ID do Discord inválido: {discord_id}")
+                elif not nome_no_ic:
+                    logger.warning("⚠️ Nome no IC está vazio!")
+                else:
+                    mention_message = (
                         f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
                         f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
                         f"*Você está pré-aprovado para a Paracomandos!* \n"
                         f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
                         f"*agendarmos na melhor opção para você*.\n\n"
-                        f"@here"
                     )
-                    await mention_channel.send(mention_message)
+
+                    try:
+                        await mention_channel.send(mention_message)
+                        logger.info(f"✅ Mensagem enviada para <@{discord_id}> no canal {mention_channel.name}!")
+                    except Exception as e:
+                        logger.error(f"❌ Erro ao enviar mensagem de menção: {e}")
 
                 processed_responses.add(response_tuple)
 
