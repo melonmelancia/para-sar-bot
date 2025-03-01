@@ -6,7 +6,6 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import logging
 import random
-import json
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,17 +20,23 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
 MENTION_CHANNEL_ID = int(os.getenv("MENTION_CHANNEL_ID", 0))
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
+# Debug: verificar se as variáveis de ambiente estão carregadas corretamente
+env_vars = ["DISCORD_BOT_TOKEN", "GOOGLE_CLIENT_EMAIL", "GOOGLE_CLIENT_ID", "GOOGLE_PRIVATE_KEY", "CHANNEL_ID", "MENTION_CHANNEL_ID", "SPREADSHEET_ID"]
+missing_vars = [var for var in env_vars if not os.getenv(var)]
+
+if missing_vars:
+    logger.error(f"❌ ERRO: As seguintes variáveis de ambiente não estão definidas: {', '.join(missing_vars)}")
+else:
+    logger.info("✅ Todas as variáveis de ambiente foram carregadas corretamente!")
+
 # Configuração do Service Account para API do Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SERVICE_ACCOUNT_INFO = {
     "type": "service_account",
-    "project_id": "para-sar-bot",
     "private_key": GOOGLE_PRIVATE_KEY,
     "client_email": GOOGLE_CLIENT_EMAIL,
     "client_id": GOOGLE_CLIENT_ID,
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
     "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
 }
 
 # Inicializa cliente Discord
@@ -47,26 +52,8 @@ except Exception as e:
     logger.error(f"❌ Erro ao configurar API do Google Sheets: {e}")
     service = None
 
-# Caminho do arquivo de persistência
-PROCESSED_FILE = "processed_responses.json"
-
-# Carregar respostas processadas de um arquivo
-def load_processed_responses():
-    if os.path.exists(PROCESSED_FILE):
-        with open(PROCESSED_FILE, "r") as f:
-            try:
-                return set(json.load(f))
-            except json.JSONDecodeError:
-                return set()
-    return set()
-
-# Salvar respostas processadas em um arquivo
-def save_processed_responses():
-    with open(PROCESSED_FILE, "w") as f:
-        json.dump(list(processed_responses), f)
-
-# Inicializa o conjunto de respostas processadas
-processed_responses = load_processed_responses()
+# Armazena respostas já processadas usando o "Carimbo de data/hora"
+processed_responses = set()
 
 # Emojis para perguntas
 QUESTION_EMOJIS = ["🔹", "🔸", "⭐", "✨", "💡", "📌", "📍", "📝", "🔍", "🗂"]
@@ -93,26 +80,25 @@ async def get_form_responses():
             return []
 
         headers = values[0]
+        logger.info(f"🔍 Cabeçalhos encontrados: {headers}")
 
-        # Verifica se existe uma coluna chamada 'ID' ou 'Timestamp'
-        unique_id_column = None
-        for idx, header in enumerate(headers):
-            if header.lower() in ["id", "timestamp"]:
-                unique_id_column = idx
-                break
-
-        if unique_id_column is None:
-            logger.error("❌ Nenhuma coluna de ID único encontrada. Pode haver duplicações.")
+        # Verifica se "Carimbo de data/hora" está na planilha
+        if "Carimbo de data/hora" not in headers:
+            logger.error("❌ Nenhuma coluna 'Carimbo de data/hora' encontrada. Pode haver duplicações.")
             return []
 
+        id_index = headers.index("Carimbo de data/hora")  # Posição do ID único
         responses = []
-        for row in values[1:]:
-            if len(row) > unique_id_column:
-                response_id = row[unique_id_column]
-                response_data = dict(zip(headers, row))
-                response_data["_id"] = response_id  # Adiciona o ID ao dicionário da resposta
-                responses.append(response_data)
 
+        for row in values[1:]:
+            if len(row) > id_index:  # Garante que a linha tem um ID
+                response_id = row[id_index]
+                if response_id in processed_responses:
+                    continue  # Pula respostas já enviadas
+
+                response_data = dict(zip(headers, row))
+                responses.append(response_data)
+        
         return responses
 
     except Exception as e:
@@ -140,40 +126,42 @@ async def check_form_responses():
             return  
 
         for response in responses:
-            response_id = response["_id"]
-            if response_id not in processed_responses:
-                message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "_id" and key.lower() != "discord id"])
+            response_id = response["Carimbo de data/hora"]  # Usa o ID único da planilha
 
-                embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
-                await main_channel.send(embed=embed)
+            if response_id in processed_responses:
+                continue  # Evita reenviar a mesma resposta
 
-                logger.info(f"🔍 Processando resposta: {response}")
+            message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
+            embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
+            await main_channel.send(embed=embed)
 
-                discord_id = response.get("ID do Discord", "").strip()
-                nome_no_ic = response.get("Nome no IC", "").strip()
-                user_to_message = 963524916987183134  # ID fixo para mencionar
+            # Debug: Exibir resposta antes de tentar mencionar
+            logger.info(f"🔍 Processando resposta: {response}")
 
-                if not discord_id or not discord_id.isdigit():
-                    logger.warning(f"⚠️ ID do Discord inválido: {discord_id}")
-                elif not nome_no_ic:
-                    logger.warning("⚠️ Nome no IC está vazio!")
-                else:
-                    mention_message = (
-                        f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
-                        f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
-                        f"*Você está pré-aprovado para a Paracomandos!* \n"
-                        f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
-                        f"*agendarmos na melhor opção para você*.\n\n"
-                    )
+            discord_id = response.get("ID do Discord", "").strip()
+            nome_no_ic = response.get("Nome no IC", "").strip()
+            user_to_message = 963524916987183134  # ID fixo para mencionar
 
-                    try:
-                        await mention_channel.send(mention_message)
-                        logger.info(f"✅ Mensagem enviada para <@{discord_id}> no canal {mention_channel.name}!")
-                    except Exception as e:
-                        logger.error(f"❌ Erro ao enviar mensagem de menção: {e}")
+            if not discord_id or not discord_id.isdigit():
+                logger.warning(f"⚠️ ID do Discord inválido: {discord_id}")
+            elif not nome_no_ic:
+                logger.warning("⚠️ Nome no IC está vazio!")
+            else:
+                mention_message = (
+                    f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
+                    f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
+                    f"*Você está pré-aprovado para a Paracomandos!* \n"
+                    f"*Envie uma mensagem para <@{user_to_message}> informando sua disponibilidade de data e horário para* "
+                    f"*agendarmos na melhor opção para você*.\n\n"
+                )
 
-                processed_responses.add(response_id)
-                save_processed_responses()
+                try:
+                    await mention_channel.send(mention_message)
+                    logger.info(f"✅ Mensagem enviada para <@{discord_id}> no canal {mention_channel.name}!")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao enviar mensagem de menção: {e}")
+
+            processed_responses.add(response_id)  # Agora armazenamos apenas o ID único
 
     except Exception as e:
         logger.error(f"❌ Erro no loop de verificação de respostas: {e}")
