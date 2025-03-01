@@ -21,15 +21,6 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
 MENTION_CHANNEL_ID = int(os.getenv("MENTION_CHANNEL_ID", 0))
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# Debug: verificar se as variáveis de ambiente estão carregadas corretamente
-env_vars = ["DISCORD_BOT_TOKEN", "GOOGLE_CLIENT_EMAIL", "GOOGLE_CLIENT_ID", "GOOGLE_PRIVATE_KEY", "CHANNEL_ID", "MENTION_CHANNEL_ID", "SPREADSHEET_ID"]
-missing_vars = [var for var in env_vars if not os.getenv(var)]
-
-if missing_vars:
-    logger.error(f"❌ ERRO: As seguintes variáveis de ambiente não estão definidas: {', '.join(missing_vars)}")
-else:
-    logger.info("✅ Todas as variáveis de ambiente foram carregadas corretamente!")
-
 # Configuração do Service Account para API do Google Sheets
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 SERVICE_ACCOUNT_INFO = {
@@ -56,16 +47,22 @@ except Exception as e:
     logger.error(f"❌ Erro ao configurar API do Google Sheets: {e}")
     service = None
 
+# Caminho do arquivo de persistência
+PROCESSED_FILE = "processed_responses.json"
+
 # Carregar respostas processadas de um arquivo
 def load_processed_responses():
-    if os.path.exists("processed_responses.json"):
-        with open("processed_responses.json", "r") as f:
-            return set(json.load(f))
+    if os.path.exists(PROCESSED_FILE):
+        with open(PROCESSED_FILE, "r") as f:
+            try:
+                return set(json.load(f))
+            except json.JSONDecodeError:
+                return set()
     return set()
 
 # Salvar respostas processadas em um arquivo
 def save_processed_responses():
-    with open("processed_responses.json", "w") as f:
+    with open(PROCESSED_FILE, "w") as f:
         json.dump(list(processed_responses), f)
 
 # Inicializa o conjunto de respostas processadas
@@ -96,7 +93,26 @@ async def get_form_responses():
             return []
 
         headers = values[0]
-        responses = [dict(zip(headers, row)) for row in values[1:] if row]
+
+        # Verifica se existe uma coluna chamada 'ID' ou 'Timestamp'
+        unique_id_column = None
+        for idx, header in enumerate(headers):
+            if header.lower() in ["id", "timestamp"]:
+                unique_id_column = idx
+                break
+
+        if unique_id_column is None:
+            logger.error("❌ Nenhuma coluna de ID único encontrada. Pode haver duplicações.")
+            return []
+
+        responses = []
+        for row in values[1:]:
+            if len(row) > unique_id_column:
+                response_id = row[unique_id_column]
+                response_data = dict(zip(headers, row))
+                response_data["_id"] = response_id  # Adiciona o ID ao dicionário da resposta
+                responses.append(response_data)
+
         return responses
 
     except Exception as e:
@@ -124,14 +140,13 @@ async def check_form_responses():
             return  
 
         for response in responses:
-            response_tuple = tuple(response.items())
-            if response_tuple not in processed_responses:
-                message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
+            response_id = response["_id"]
+            if response_id not in processed_responses:
+                message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "_id" and key.lower() != "discord id"])
 
                 embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
                 await main_channel.send(embed=embed)
 
-                # Debug: Exibir resposta antes de tentar mencionar
                 logger.info(f"🔍 Processando resposta: {response}")
 
                 discord_id = response.get("ID do Discord", "").strip()
@@ -157,8 +172,8 @@ async def check_form_responses():
                     except Exception as e:
                         logger.error(f"❌ Erro ao enviar mensagem de menção: {e}")
 
-                processed_responses.add(response_tuple)
-                save_processed_responses()  # Salva as respostas processadas
+                processed_responses.add(response_id)
+                save_processed_responses()
 
     except Exception as e:
         logger.error(f"❌ Erro no loop de verificação de respostas: {e}")
