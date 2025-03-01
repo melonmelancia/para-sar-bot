@@ -20,17 +20,8 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
 MENTION_CHANNEL_ID = int(os.getenv("MENTION_CHANNEL_ID", 0))
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 
-# Debug: verificar se as variáveis de ambiente estão carregadas corretamente
-env_vars = ["DISCORD_BOT_TOKEN", "GOOGLE_CLIENT_EMAIL", "GOOGLE_CLIENT_ID", "GOOGLE_PRIVATE_KEY", "CHANNEL_ID", "MENTION_CHANNEL_ID", "SPREADSHEET_ID"]
-missing_vars = [var for var in env_vars if not os.getenv(var)]
-
-if missing_vars:
-    logger.error(f"❌ ERRO: As seguintes variáveis de ambiente não estão definidas: {', '.join(missing_vars)}")
-else:
-    logger.info("✅ Todas as variáveis de ambiente foram carregadas corretamente!")
-
 # Configuração do Service Account para API do Google Sheets
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SERVICE_ACCOUNT_INFO = {
     "type": "service_account",
     "private_key": GOOGLE_PRIVATE_KEY,
@@ -52,14 +43,8 @@ except Exception as e:
     logger.error(f"❌ Erro ao configurar API do Google Sheets: {e}")
     service = None
 
-# Armazena respostas já processadas usando o "Carimbo de data/hora"
+# Armazena respostas já processadas
 processed_responses = set()
-
-# Emojis para perguntas
-QUESTION_EMOJIS = ["🔹", "🔸", "⭐", "✨", "💡", "📌", "📍", "📝", "🔍", "🗂"]
-
-def get_random_emoji():
-    return random.choice(QUESTION_EMOJIS)
 
 # Função para buscar respostas do Google Sheets
 async def get_form_responses():
@@ -80,22 +65,18 @@ async def get_form_responses():
             return []
 
         headers = values[0]
-        logger.info(f"🔍 Cabeçalhos encontrados: {headers}")
-
-        # Verifica se "Carimbo de data/hora" está na planilha
         if "Carimbo de data/hora" not in headers:
-            logger.error("❌ Nenhuma coluna 'Carimbo de data/hora' encontrada. Pode haver duplicações.")
+            logger.error("❌ Nenhuma coluna 'Carimbo de data/hora' encontrada.")
             return []
 
         id_index = headers.index("Carimbo de data/hora")  # Posição do ID único
         responses = []
 
         for row in values[1:]:
-            if len(row) > id_index:  # Garante que a linha tem um ID
+            if len(row) > id_index:
                 response_id = row[id_index]
                 if response_id in processed_responses:
                     continue  # Pula respostas já enviadas
-
                 response_data = dict(zip(headers, row))
                 responses.append(response_data)
         
@@ -105,48 +86,58 @@ async def get_form_responses():
         logger.error(f"❌ Erro ao buscar respostas da planilha: {e}")
         return []
 
-# Loop para checar respostas a cada 5 segundos
+# Função para limpar o formulário após capturar os dados
+async def clear_form_responses():
+    if service is None:
+        logger.error("❌ API do Google Sheets não está configurada corretamente.")
+        return
+
+    try:
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+        sheet_name = sheet_metadata["sheets"][0]["properties"]["title"]
+
+        # Mantém apenas a linha do cabeçalho
+        clear_range = f"{sheet_name}!A2:Z"  
+        request_body = {"range": clear_range}
+        service.spreadsheets().values().clear(spreadsheetId=SPREADSHEET_ID, range=clear_range, body=request_body).execute()
+
+        logger.info("✅ Respostas do formulário foram apagadas com sucesso!")
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao limpar as respostas da planilha: {e}")
+
+# Loop para verificar respostas
 @tasks.loop(seconds=5)
 async def check_form_responses():
     try:
         main_channel = bot.get_channel(CHANNEL_ID)
         mention_channel = bot.get_channel(MENTION_CHANNEL_ID)
 
-        if main_channel is None:
-            logger.error("❌ O canal principal não foi encontrado.")
-            return
-        if mention_channel is None:
-            logger.error("❌ O canal de menções não foi encontrado.")
+        if main_channel is None or mention_channel is None:
+            logger.error("❌ Um dos canais não foi encontrado.")
             return
 
         responses = await get_form_responses()
 
         if not responses:
-            logger.info("🔍 Nenhuma nova resposta encontrada. Aguardando...")
+            logger.info("🔍 Nenhuma nova resposta encontrada.")
             return  
 
         for response in responses:
-            response_id = response["Carimbo de data/hora"]  # Usa o ID único da planilha
+            response_id = response["Carimbo de data/hora"]  
 
             if response_id in processed_responses:
-                continue  # Evita reenviar a mesma resposta
+                continue  
 
-            message = "\n".join([f"{get_random_emoji()} **{key}**: {value}" for key, value in response.items() if key.lower() != "discord id"])
+            message = "\n".join([f"**{key}**: {value}" for key, value in response.items()])
             embed = discord.Embed(title="📩 Nova Resposta Recebida!", description=message, color=discord.Color.blue())
             await main_channel.send(embed=embed)
-
-            # Debug: Exibir resposta antes de tentar mencionar
-            logger.info(f"🔍 Processando resposta: {response}")
 
             discord_id = response.get("ID do Discord", "").strip()
             nome_no_ic = response.get("Nome no IC", "").strip()
             user_to_message = 963524916987183134  # ID fixo para mencionar
 
-            if not discord_id or not discord_id.isdigit():
-                logger.warning(f"⚠️ ID do Discord inválido: {discord_id}")
-            elif not nome_no_ic:
-                logger.warning("⚠️ Nome no IC está vazio!")
-            else:
+            if discord_id.isdigit():
                 mention_message = (
                     f"# <:PARASAR:{1132713845559922728}>  Paracomandos\n\n"
                     f"|| {nome_no_ic} // <@{discord_id}> || \n\n"
@@ -157,11 +148,14 @@ async def check_form_responses():
 
                 try:
                     await mention_channel.send(mention_message)
-                    logger.info(f"✅ Mensagem enviada para <@{discord_id}> no canal {mention_channel.name}!")
+                    logger.info(f"✅ Mensagem enviada para <@{discord_id}>!")
                 except Exception as e:
-                    logger.error(f"❌ Erro ao enviar mensagem de menção: {e}")
+                    logger.error(f"❌ Erro ao enviar mensagem: {e}")
 
-            processed_responses.add(response_id)  # Agora armazenamos apenas o ID único
+            processed_responses.add(response_id)  
+
+        # Após processar todas as respostas, limpar o formulário
+        await clear_form_responses()
 
     except Exception as e:
         logger.error(f"❌ Erro no loop de verificação de respostas: {e}")
